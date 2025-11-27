@@ -12,6 +12,7 @@ export interface AzureDevopsSettings {
   usernames: string;
   accessToken: string;
   columns: string;
+  useHttps: boolean;
 }
 
 export const AZURE_DEVOPS_DEFAULT_SETTINGS: AzureDevopsSettings = {
@@ -22,6 +23,7 @@ export const AZURE_DEVOPS_DEFAULT_SETTINGS: AzureDevopsSettings = {
   usernames: '',
   accessToken: '',
   columns: 'Pending,In Progress,In Merge,In Verification,Closed',
+  useHttps: true,
 };
 
 const TASKS_QUERY: string =
@@ -42,11 +44,12 @@ export class AzureDevopsClient implements ITfsClient {
     };
 
     let BaseURL = '';
+    const protocol = settings.azureDevopsSettings.useHttps ? 'https' : 'http';
 
     if (settings.azureDevopsSettings.collection) {
-      BaseURL = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}`;
+      BaseURL = `${protocol}://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}`;
     } else {
-      BaseURL = `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.project}`;
+      BaseURL = `${protocol}://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.project}`;
     }
 
     try {
@@ -151,7 +154,7 @@ export class AzureDevopsClient implements ITfsClient {
             task.fields['System.Title'],
             task.fields['System.WorkItemType'],
             assigneeName,
-            `https://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`,
+            `${protocol}://${settings.azureDevopsSettings.instance}/${settings.azureDevopsSettings.collection}/${settings.azureDevopsSettings.project}/_workitems/edit/${task.id}`,
             description,
             acceptanceCriteria,
             testScenarios,
@@ -191,6 +194,16 @@ export class AzureDevopsClient implements ITfsClient {
     settingsTab: AgileTaskNotesPluginSettingTab
   ): any {
     container.createEl('h2', { text: 'AzureDevops Remote Repo Settings' });
+
+    new Setting(container)
+      .setName('Use HTTPS')
+      .setDesc('Enable to use HTTPS, disable to use HTTP')
+      .addToggle((toggle) =>
+        toggle.setValue(plugin.settings.azureDevopsSettings.useHttps).onChange(async (value) => {
+          plugin.settings.azureDevopsSettings.useHttps = value;
+          await plugin.saveSettings();
+        })
+      );
 
     new Setting(container)
       .setName('Instance')
