@@ -14,6 +14,7 @@ export interface JiraSettings {
   useSprintName: boolean;
   mode: string;
   excludeBacklog: boolean;
+  useHttps: boolean;
 }
 
 export const JIRA_DEFAULT_SETTINGS: JiraSettings = {
@@ -26,6 +27,7 @@ export const JIRA_DEFAULT_SETTINGS: JiraSettings = {
   useSprintName: true,
   mode: 'sprints',
   excludeBacklog: false,
+  useHttps: true,
 };
 
 export class JiraClient implements ITfsClient {
@@ -47,7 +49,8 @@ export class JiraClient implements ITfsClient {
       headers.Authorization = `Bearer ${settings.jiraSettings.apiToken}`;
     }
 
-    const BaseURL = `https://${settings.jiraSettings.baseUrl}/rest/agile/1.0`;
+    const protocol = settings.jiraSettings.useHttps ? 'https' : 'http';
+    const BaseURL = `${protocol}://${settings.jiraSettings.baseUrl}/rest/agile/1.0`;
 
     try {
       if (settings.jiraSettings.mode == 'sprints') {
@@ -112,7 +115,7 @@ export class JiraClient implements ITfsClient {
                 issue.fields['summary'],
                 issue.fields['issuetype']['name'],
                 assigneeName,
-                `https://${settings.jiraSettings.baseUrl}/browse/${issue.key}`,
+                `${protocol}://${settings.jiraSettings.baseUrl}/browse/${issue.key}`,
                 issue.fields['description']
               )
             );
@@ -193,7 +196,7 @@ export class JiraClient implements ITfsClient {
                 issue.fields['summary'],
                 issue.fields['issuetype']['name'],
                 assigneeName,
-                `https://${settings.jiraSettings.baseUrl}/browse/${issue.key}`,
+                `${protocol}://${settings.jiraSettings.baseUrl}/browse/${issue.key}`,
                 issue.fields['description']
               );
 
@@ -274,6 +277,16 @@ export class JiraClient implements ITfsClient {
     settingsTab: AgileTaskNotesPluginSettingTab
   ): any {
     container.createEl('h2', { text: 'Jira Remote Repo Settings' });
+
+    new Setting(container)
+      .setName('Use HTTPS')
+      .setDesc('Enable to use HTTPS, disable to use HTTP')
+      .addToggle((toggle) =>
+        toggle.setValue(plugin.settings.jiraSettings.useHttps).onChange(async (value) => {
+          plugin.settings.jiraSettings.useHttps = value;
+          await plugin.saveSettings();
+        })
+      );
 
     new Setting(container)
       .setName('URL')
